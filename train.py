@@ -34,6 +34,7 @@ parser.add_argument('-m', '--nr_logistic_mix', type=int, default=10, help='Numbe
 parser.add_argument('-z', '--resnet_nonlinearity', type=str, default='concat_elu', help='Which nonlinearity to use in the ResNet layers. One of "concat_elu", "elu", "relu" ')
 parser.add_argument('-c', '--class_conditional', dest='class_conditional', action='store_true', help='Condition generative model on labels?')
 parser.add_argument('-ed', '--energy_distance', dest='energy_distance', action='store_true', help='use energy distance in place of likelihood')
+parser.add_argument('-tm', '--take_max', dest='take_max', action='store_true', help='take argmax instead of sample.')
 # optimization
 parser.add_argument('-l', '--learning_rate', type=float, default=0.001, help='Base learning rate')
 parser.add_argument('-e', '--lr_decay', type=float, default=0.999995, help='Learning rate decay, applied every step of the optimization')
@@ -131,7 +132,7 @@ for i in range(args.nr_gpu):
         if args.energy_distance:
             new_x_gen.append(out[0])
         else:
-            new_x_gen.append(nn.sample_from_discretized_mix_logistic(out, args.nr_logistic_mix))
+            new_x_gen.append(nn.sample_from_discretized_mix_logistic(out, args.nr_logistic_mix, args.take_max))
 
 # add losses and gradients together and get training updates
 tf_lr = tf.placeholder(tf.float32, shape=[])
@@ -158,6 +159,7 @@ def sample_from_model(sess):
                 x_gen[i][:,yi,xi,:] = new_x_gen_np[i][:,yi,xi,:]
     return np.concatenate(x_gen, axis=0)
 
+
 # init & save
 initializer = tf.global_variables_initializer()
 saver = tf.train.Saver()
@@ -182,6 +184,7 @@ def make_feed_dict(data, init=False):
             feed_dict.update({ys[i]: y[i] for i in range(args.nr_gpu)})
     return feed_dict
 
+
 # //////////// perform training //////////////
 if not os.path.exists(args.save_dir):
     os.makedirs(args.save_dir)
@@ -193,6 +196,17 @@ with tf.Session() as sess:
 
         # init
         if epoch == 0:
+            # generate samples from the model
+            sample_x = []
+            for i in range(args.num_samples):
+                sample_x.append(sample_from_model(sess))
+            sample_x = np.concatenate(sample_x, axis=0)
+            img_tile = plotting.img_tile(sample_x[:100], aspect_ratio=1.0, border_color=1.0, stretch=True)
+            img = plotting.plot_img(img_tile, title=args.data_set + ' samples')
+            plotting.plt.savefig(os.path.join(args.save_dir, '%s_sample%d.png' % (args.data_set, epoch)))
+            plotting.plt.close('all')
+            np.savez(os.path.join(args.save_dir, '%s_sample%d.npz' % (args.data_set, epoch)), sample_x)
+
             train_data.reset()  # rewind the iterator back to 0 to do one full epoch
             if args.load_params:
                 ckpt_file = args.save_dir + '/params_' + args.data_set + '.ckpt'
@@ -207,12 +221,19 @@ with tf.Session() as sess:
 
         # train for one epoch
         train_losses = []
+        cnt = 0
         for d in train_data:
             feed_dict = make_feed_dict(d)
             # forward/backward/update model on each gpu
             lr *= args.lr_decay
             feed_dict.update({ tf_lr: lr })
             l,_ = sess.run([bits_per_dim, optimizer], feed_dict)
+            cnt += 1
+            sys.stdout.write("\r ----> Epoch %s, epoch_step %s, loss %s" % (epoch, cnt, l))
+            sys.stdout.flush()
+            # if cnt % 100 == 0:
+            #     print("")
+            # print("Epoch %s, Epoch step %s" % (epoch, cnt))
             train_losses.append(l)
         train_loss_gen = np.mean(train_losses)
 
@@ -226,7 +247,8 @@ with tf.Session() as sess:
         test_bpd.append(test_loss_gen)
 
         # log progress to console
-        print("Iteration %d, time = %ds, train bits_per_dim = %.4f, test bits_per_dim = %.4f" % (epoch, time.time()-begin, train_loss_gen, test_loss_gen))
+        print("\n ----> Iteration %d, time = %ds, train bits_per_dim = %.4f, test bits_per_dim = %.4f" %
+              (epoch, time.time()-begin, np.asscalar(train_loss_gen), np.asscalar(test_loss_gen)))
         sys.stdout.flush()
 
         if epoch % args.save_interval == 0:

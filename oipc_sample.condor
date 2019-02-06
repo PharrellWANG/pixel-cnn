@@ -1,0 +1,27 @@
+####################
+##
+## Condor file for HTCC: Condor Submission File for Multiple Jobs
+##
+####################
+
+### DEFAULT SETTINGS #########################
+#rank           =
+priority        = 0
+notification    = Never
+notify_user     =
+getenv          = True
+#environment    = HOME=$ENV(HOME)
+
+### USER DEFINED SETTINGS #####################
+# queue_num       = 125
+file_name       = oipc_sample
+
+### JOB ###########################
+executable      = $(file_name).sh
+arguments       =
+input           =
+output          = cr/$(file_name).out
+error           = $(output).err
+log             = cr/$(file_name).log
+
+queue

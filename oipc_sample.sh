@@ -1,5 +1,5 @@
 #!/bin/bash
-source venv/bin/activate
+source /home/staff/zxpwang2/intragan/conditional-pixelcnn-decoder/venv/bin/activate
 export PYTHONPATH=/home/staff/zxpwang2/intragan/pixel-cnn:${PYTHONPATH}
 nvidia-smi
 python train.py --nr_gpu=1 \

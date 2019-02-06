@@ -197,7 +197,6 @@ with tf.Session() as sess:
         # init
         if epoch == 0:
 
-
             train_data.reset()  # rewind the iterator back to 0 to do one full epoch
             if args.load_params:
                 ckpt_file = args.save_dir + '/params_' + args.data_set + '.ckpt'
@@ -208,6 +207,7 @@ with tf.Session() as sess:
                 sess.run(initializer)
                 feed_dict = make_feed_dict(train_data.next(args.init_batch_size), init=True)  # manually retrieve exactly init_batch_size examples
                 sess.run(init_pass, feed_dict)
+
             # generate samples from the model
             sample_x = []
             for i in range(args.num_samples):
@@ -218,6 +218,7 @@ with tf.Session() as sess:
             plotting.plt.savefig(os.path.join(args.save_dir, '%s_sample%d.png' % (args.data_set, epoch)))
             plotting.plt.close('all')
             np.savez(os.path.join(args.save_dir, '%s_sample%d.npz' % (args.data_set, epoch)), sample_x)
+
             print('starting training')
 
         # train for one epoch

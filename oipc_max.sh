@@ -5,7 +5,7 @@ nvidia-smi
 python train.py --nr_gpu=1 \
         --data_dir=data \
         --save_dir=save_max \
-        --nr_filters=160 \
-        --batch_size=48 \
+        --nr_filters=120 \
+        --batch_size=36 \
         -t=2 \
         -tm

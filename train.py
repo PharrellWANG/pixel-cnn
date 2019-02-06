@@ -196,16 +196,7 @@ with tf.Session() as sess:
 
         # init
         if epoch == 0:
-            # generate samples from the model
-            sample_x = []
-            for i in range(args.num_samples):
-                sample_x.append(sample_from_model(sess))
-            sample_x = np.concatenate(sample_x, axis=0)
-            img_tile = plotting.img_tile(sample_x[:100], aspect_ratio=1.0, border_color=1.0, stretch=True)
-            img = plotting.plot_img(img_tile, title=args.data_set + ' samples')
-            plotting.plt.savefig(os.path.join(args.save_dir, '%s_sample%d.png' % (args.data_set, epoch)))
-            plotting.plt.close('all')
-            np.savez(os.path.join(args.save_dir, '%s_sample%d.npz' % (args.data_set, epoch)), sample_x)
+
 
             train_data.reset()  # rewind the iterator back to 0 to do one full epoch
             if args.load_params:
@@ -217,6 +208,16 @@ with tf.Session() as sess:
                 sess.run(initializer)
                 feed_dict = make_feed_dict(train_data.next(args.init_batch_size), init=True)  # manually retrieve exactly init_batch_size examples
                 sess.run(init_pass, feed_dict)
+            # generate samples from the model
+            sample_x = []
+            for i in range(args.num_samples):
+                sample_x.append(sample_from_model(sess))
+            sample_x = np.concatenate(sample_x, axis=0)
+            img_tile = plotting.img_tile(sample_x[:100], aspect_ratio=1.0, border_color=1.0, stretch=True)
+            img = plotting.plot_img(img_tile, title=args.data_set + ' samples')
+            plotting.plt.savefig(os.path.join(args.save_dir, '%s_sample%d.png' % (args.data_set, epoch)))
+            plotting.plt.close('all')
+            np.savez(os.path.join(args.save_dir, '%s_sample%d.npz' % (args.data_set, epoch)), sample_x)
             print('starting training')
 
         # train for one epoch
@@ -251,7 +252,7 @@ with tf.Session() as sess:
               (epoch, time.time()-begin, np.asscalar(train_loss_gen), np.asscalar(test_loss_gen)))
         sys.stdout.flush()
 
-        if epoch % args.save_interval == 0:
+        if epoch % args.save_interval == 0 and epoch != 0:
 
             # generate samples from the model
             sample_x = []

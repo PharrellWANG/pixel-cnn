@@ -76,3 +76,8 @@ If you find this code useful please cite us in your work:
   year={2017}
 }
 ```
+
+
+```
+python train.py --nr_gpu 1 --data_dir data --save_dir save --nr_filters 8 --batch_size 6 -t 2
+```
